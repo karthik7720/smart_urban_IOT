@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Waste Management Dashboard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <style>
+        /* CSS Variables for Professional Theme */
+        :root {
+            --bg-primary: #1a1c23;
+            --bg-secondary: #252831;
+            --bg-tertiary: #313541;
+            --text-primary: #f0f2f5;
+            --text-secondary: #a8b0b9;
+            --accent-blue: #4a90e2;
+            --accent-green: #50e3c2;
+            --accent-yellow: #f5a623;
+            --accent-red: #d0021b;
+            --font-main: 'Poppins', sans-serif;
+        }
+
+        /* General Reset & Body Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+        }
+        
+        /* --- Main Layout: Sidebar + Main Content --- */
+        .sidebar {
+            width: 250px;
+            background-color: var(--bg-secondary);
+            padding: 2rem 1rem;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--bg-tertiary);
+        }
+
+        .sidebar-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 3rem;
+        }
+        .sidebar-header i {
+            color: var(--accent-green);
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            background-color: var(--accent-blue);
+            color: var(--text-primary);
+        }
+        .sidebar-nav a i {
+            width: 20px;
+        }
+        
+        .main-content {
+            flex-grow: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2rem;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: var(--text-secondary);
+        }
+        .user-info i {
+            font-size: 1.5rem;
+        }
+        
+        /* --- KPI Cards --- */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .kpi-card {
+            background-color: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--bg-tertiary);
+        }
+        .kpi-card-title {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+        .kpi-card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        /* --- Main Bins Section --- */
+        .bins-section {
+            background-color: var(--bg-secondary);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--bg-tertiary);
+        }
+
+        .bins-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .add-btn {
+            background-color: var(--accent-blue);
+            color: var(--text-primary);
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-family: var(--font-main);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background-color 0.3s;
+        }
+        .add-btn:hover {
+            background-color: #3a7bc8;
+        }
+
+        /* Bin List Table styling */
+        .bin-list-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .bin-list-table th, .bin-list-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--bg-tertiary);
+        }
+        .bin-list-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .status-normal { background-color: #1f4e46; color: var(--accent-green); }
+        .status-warning { background-color: #5b472a; color: var(--accent-yellow); }
+        .status-critical { background-color: #582a33; color: var(--accent-red); }
+
+        .fill-bar-container {
+            width: 100%;
+            height: 10px;
+            background-color: var(--bg-tertiary);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .fill-bar {
+            height: 100%;
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        .fill-green { background-color: var(--accent-green); }
+        .fill-yellow { background-color: var(--accent-yellow); }
+        .fill-red { background-color: var(--accent-red); }
+
+        .details-btn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .details-btn:hover {
+            background-color: var(--accent-blue);
+        }
+
+        /* --- Modal Styles (Shared) --- */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background-color: var(--bg-secondary);
+            border-radius: 12px;
+            border: 1px solid var(--bg-tertiary);
+            width: 90%;
+            display: flex;
+            flex-direction: column;
+            animation: slide-down 0.4s ease-out;
+        }
+
+        @keyframes slide-down {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--bg-tertiary);
+        }
+        .modal-header h2 { margin: 0; }
+        .close-btn {
+            color: var(--text-secondary);
+            font-size: 1.8rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover { color: var(--text-primary); }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+        
+        .modal-footer {
+            padding: 1rem 1.5rem;
+            border-top: 1px solid var(--bg-tertiary);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+        
+        /* --- Bin Details Modal Specifics --- */
+        #bin-modal .modal-content { max-width: 800px; }
+        #bin-modal .modal-body {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        .modal-map {
+            grid-column: 2 / 3;
+            grid-row: 1 / 3;
+            min-height: 300px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .modal-map iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            filter: invert(1) hue-rotate(180deg);
+        }
+        .detail-item {
+            background-color: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: 8px;
+        }
+        .detail-item-label { color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.25rem; }
+        .detail-item-value { font-size: 1.2rem; font-weight: 600; }
+        
+        .remove-btn {
+            background-color: var(--accent-red); color: white; border: none;
+            padding: 0.6rem 1.2rem; font-weight: 600;
+        }
+        .remove-btn:hover { background-color: #b00216; }
+        
+        /* --- Add Bin Modal Form Specifics --- */
+        #add-bin-modal .modal-content { max-width: 500px; }
+        #add-bin-form { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group label { margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.9rem; }
+        .form-group input {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--bg-tertiary);
+            color: var(--text-primary);
+            padding: 0.75rem;
+            border-radius: 6px;
+            font-family: var(--font-main);
+            font-size: 1rem;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        .form-submit-btn {
+            background-color: var(--accent-blue); color: white; border: none;
+            padding: 0.75rem; font-weight: 600;
+        }
+        .form-submit-btn:hover { background-color: #3a7bc8; }
+        .form-cancel-btn {
+            background-color: var(--bg-tertiary); color: var(--text-primary); border: none;
+        }
+        
+        .modal-footer button {
+            border-radius: 6px; cursor: pointer; transition: background-color 0.2s ease;
+            font-family: var(--font-main);
+        }
+
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="sidebar-header"><i class="fa-solid fa-recycle"></i><span>SmartWaste</span></div>
+        <div class="sidebar-nav">
+            <a href="#" class="active"><i class="fa-solid fa-tachometer-alt"></i> Dashboard</a>
+            <a href="#"><i class="fa-solid fa-chart-bar"></i> Analytics</a>
+            <a href="#"><i class="fa-solid fa-bell"></i> Alerts</a>
+            <a href="#"><i class="fa-solid fa-file-alt"></i> Reports</a>
+            <a href="#"><i class="fa-solid fa-cog"></i> Settings</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <header>
+            <h1>Dashboard</h1>
+            <div class="user-info"><i class="fa-solid fa-user-circle"></i><span>Municipal Officer</span></div>
+        </header>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-card-title">Total Bins</div>
+                <div id="kpi-total-bins" class="kpi-card-value">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card-title">Bins > 75% Full</div>
+                <div id="kpi-full-bins" class="kpi-card-value" style="color: var(--accent-red);">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card-title">Bins 50-75% Full</div>
+                <div id="kpi-warning-bins" class="kpi-card-value" style="color: var(--accent-yellow);">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-card-title">System Health</div>
+                <div id="kpi-system-health" class="kpi-card-value" style="color: var(--accent-green);">100%</div>
+            </div>
+        </div>
+
+        <section class="bins-section">
+            <div class="bins-section-header">
+                <h2>All Smart Bins</h2>
+                <button id="add-bin-btn" class="add-btn"><i class="fa-solid fa-plus"></i> Add New Bin</button>
+            </div>
+            <table class="bin-list-table">
+                <thead>
+                    <tr>
+                        <th>Bin ID</th>
+                        <th>Address</th>
+                        <th>Status</th>
+                        <th>Fill Level</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="bin-list-body">
+                    </tbody>
+            </table>
+        </section>
+    </main>
+
+    <div id="bin-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-bin-id">Bin Details</h2><span class="close-btn" id="close-details-modal-btn">×</span>
+            </div>
+            <div class="modal-body">
+                <div class="detail-item"><div class="detail-item-label">Address</div><div id="modal-bin-address" class="detail-item-value"></div></div>
+                <div class="detail-item"><div class="detail-item-label">Status</div><div id="modal-bin-status" class="detail-item-value"></div></div>
+                <div class="detail-item"><div class="detail-item-label">Fill Level</div><div id="modal-bin-fill" class="detail-item-value"></div></div>
+                <div class="detail-item"><div class="detail-item-label">Temperature</div><div id="modal-bin-temp" class="detail-item-value"></div></div>
+                <div class="detail-item"><div class="detail-item-label">Battery</div><div id="modal-bin-battery" class="detail-item-value"></div></div>
+                <div class="modal-map" id="modal-map-container"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="modal-remove-btn" class="remove-btn">Remove Bin</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="add-bin-modal" class="modal">
+        <div class="modal-content">
+             <div class="modal-header">
+                <h2>Add a New Smart Bin</h2><span class="close-btn" id="close-add-modal-btn">×</span>
+            </div>
+            <form id="add-bin-form">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="binId">Bin ID</label>
+                        <input type="text" id="binId" placeholder="e.g., GNT-006" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="address">Address</label>
+                        <input type="text" id="address" placeholder="e.g., Brodipet, Guntur" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="latitude">Latitude</label>
+                        <input type="number" id="latitude" step="any" placeholder="e.g., 16.306" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="longitude">Longitude</label>
+                        <input type="number" id="longitude" step="any" placeholder="e.g., 80.43" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fillLevel">Initial Fill Level (%)</label>
+                        <input type="number" id="fillLevel" min="0" max="100" value="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="form-cancel-btn" id="cancel-add-bin-btn">Cancel</button>
+                    <button type="submit" class="form-submit-btn">Add Bin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, onValue, set, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        // --- ⚠️ IMPORTANT: REPLACE WITH YOUR FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+  apiKey: "AIzaSyDeUTafZWpu4ZKl37AVHEX4GR3rQv4sqyw",
+  authDomain: "dashboard-61ee7.firebaseapp.com",
+  databaseURL: "https://dashboard-61ee7-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "dashboard-61ee7",
+  storageBucket: "dashboard-61ee7.firebasestorage.app",
+  messagingSenderId: "261964668241",
+  appId: "1:261964668241:web:69d060b2cff9da47c4c770",
+  measurementId: "G-F16QHJEQNW"
+};
+
+        
+        // --- ⚠️ IMPORTANT: REPLACE WITH YOUR GOOGLE MAPS API KEY ---
+        const GOOGLE_MAPS_API_KEY = "AIzaSyCVX9JOBrXLSi0yyiALBJqJ3VRT6jkvDgI";
+
+        // --- DOM ELEMENT REFERENCES ---
+        const binListBody = document.getElementById('bin-list-body');
+        const kpiTotalBins = document.getElementById('kpi-total-bins');
+        const kpiFullBins = document.getElementById('kpi-full-bins');
+        const kpiWarningBins = document.getElementById('kpi-warning-bins');
+        
+        // Details Modal
+        const detailsModal = document.getElementById('bin-modal');
+        const closeDetailsModalBtn = document.getElementById('close-details-modal-btn');
+
+        // Add Bin Modal
+        const addBinModal = document.getElementById('add-bin-modal');
+        const addBinBtn = document.getElementById('add-bin-btn');
+        const closeAddModalBtn = document.getElementById('close-add-modal-btn');
+        const cancelAddBinBtn = document.getElementById('cancel-add-bin-btn');
+        const addBinForm = document.getElementById('add-bin-form');
+
+        // Initialize Firebase
+        try {
+            const app = initializeApp(firebaseConfig);
+            const database = getDatabase(app);
+            const trashBinsRef = ref(database, 'trash_bins');
+
+            console.log("Firebase connection initialized successfully. ✅");
+
+            // --- REAL-TIME DATA LISTENER ---
+            onValue(trashBinsRef, (snapshot) => {
+                const bins = snapshot.val();
+                binListBody.innerHTML = ''; 
+                
+                let totalBins = 0, fullBins = 0, warningBins = 0;
+
+                if (bins) {
+                    Object.entries(bins).forEach(([binId, binData]) => {
+                        binData.temperature = binData.temperature || (Math.random() * 15 + 25).toFixed(1);
+                        binData.battery = binData.battery || (Math.random() * 50 + 50).toFixed(1);
+                        binListBody.appendChild(createBinTableRow(binId, binData));
+                        
+                        totalBins++;
+                        if (binData.fillLevel > 75) fullBins++;
+                        else if (binData.fillLevel >= 50) warningBins++;
+                    });
+                } else {
+                    binListBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No bins found. Add one to get started!</td></tr>';
+                }
+
+                kpiTotalBins.textContent = totalBins;
+                kpiFullBins.textContent = fullBins;
+                kpiWarningBins.textContent = warningBins;
+            });
+
+        } catch (error) {
+            console.error("🔥 Firebase connection failed:", error);
+            binListBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color: var(--accent-red);">Could not connect to the database.</td></tr>`;
+        }
+
+        // --- UI LOGIC ---
+
+        function createBinTableRow(binId, binData) {
+            const tr = document.createElement('tr');
+            let statusText, statusClass, fillClass;
+            if (binData.fillLevel > 75) {
+                [statusText, statusClass, fillClass] = ['Critical', 'status-critical', 'fill-red'];
+            } else if (binData.fillLevel >= 50) {
+                [statusText, statusClass, fillClass] = ['Warning', 'status-warning', 'fill-yellow'];
+            } else {
+                [statusText, statusClass, fillClass] = ['Normal', 'status-normal', 'fill-green'];
+            }
+
+            tr.innerHTML = `
+                <td><b>${binId}</b></td><td>${binData.address}</td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td><div class="fill-bar-container"><div class="fill-bar ${fillClass}" style="width: ${binData.fillLevel}%;"></div></div></td>
+                <td><button class="details-btn">View Details</button></td>
+            `;
+
+            tr.querySelector('.details-btn').addEventListener('click', () => openDetailsModal(binId, binData, statusText));
+            return tr;
+        }
+
+        function openDetailsModal(binId, binData, statusText) {
+            document.getElementById('modal-bin-id').textContent = binId;
+            document.getElementById('modal-bin-address').textContent = binData.address;
+            document.getElementById('modal-bin-status').textContent = statusText;
+            document.getElementById('modal-bin-fill').textContent = `${binData.fillLevel}%`;
+            document.getElementById('modal-bin-temp').textContent = `${binData.temperature}°C`;
+            document.getElementById('modal-bin-battery').textContent = `${binData.battery}%`;
+
+            const mapContainer = document.getElementById('modal-map-container');
+            const mapUrl = `https://maps.google.com/maps?q=${binData.latitude},${binData.longitude}&z=16&output=embed`;
+            mapContainer.innerHTML = `<iframe src="${mapUrl}" loading="lazy"></iframe>`;
+            
+            document.getElementById('modal-remove-btn').onclick = () => {
+                if (confirm(`Are you sure you want to remove ${binId}? This action cannot be undone.`)) {
+                    removeBin(binId);
+                    closeDetailsModal();
+                }
+            };
+            detailsModal.classList.add('show');
+        }
+
+        function closeDetailsModal() { detailsModal.classList.remove('show'); }
+        function openAddBinModal() { addBinModal.classList.add('show'); }
+        function closeAddBinModal() { addBinModal.classList.remove('show'); addBinForm.reset(); }
+
+        // --- FIREBASE CRUD FUNCTIONS ---
+
+        function handleAddBin(event) {
+            event.preventDefault();
+            const binId = document.getElementById('binId').value.trim();
+            if (!binId) {
+                alert("Bin ID cannot be empty.");
+                return;
+            }
+
+            const newBinData = {
+                address: document.getElementById('address').value.trim(),
+                latitude: parseFloat(document.getElementById('latitude').value),
+                longitude: parseFloat(document.getElementById('longitude').value),
+                fillLevel: parseInt(document.getElementById('fillLevel').value)
+            };
+
+            try {
+                const db = getDatabase();
+                set(ref(db, 'trash_bins/' + binId), newBinData);
+                console.log(`Bin ${binId} added successfully. ✨`);
+                closeAddBinModal();
+            } catch (error) {
+                console.error("🔥 Error adding bin:", error);
+                alert("Failed to add bin. Check console for details.");
+            }
+        }
+        
+        function removeBin(binId) {
+             try {
+                const db = getDatabase();
+                remove(ref(db, 'trash_bins/' + binId));
+                console.log(`Bin ${binId} removed successfully. 🗑️`);
+            } catch (error) {
+                console.error("🔥 Error removing bin:", error);
+                alert("Failed to remove bin. Check console for details.");
+            }
+        }
+        
+        // --- EVENT LISTENERS ---
+        closeDetailsModalBtn.addEventListener('click', closeDetailsModal);
+        addBinBtn.addEventListener('click', openAddBinModal);
+        closeAddModalBtn.addEventListener('click', closeAddBinModal);
+        cancelAddBinBtn.addEventListener('click', closeAddBinModal);
+        addBinForm.addEventListener('submit', handleAddBin);
+
+        window.addEventListener('click', (event) => {
+            if (event.target == detailsModal) closeDetailsModal();
+            if (event.target == addBinModal) closeAddBinModal();
+        });
+
+    </script>
+</body>
+</html>
