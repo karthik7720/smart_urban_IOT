@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Waste Management Dashboard</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-primary: #1a1c23; --bg-secondary: #252831; --bg-tertiary: #313541;
+            --text-primary: #f0f2f5; --text-secondary: #a8b0b9; --accent-blue: #4a90e2;
+            --accent-green: #50e3c2; --accent-yellow: #f5a623; --accent-red: #d0021b;
+            --font-main: 'Poppins', sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-main); background-color: var(--bg-primary); color: var(--text-primary); display: flex; }
+        
+        .sidebar { width: 250px; background-color: var(--bg-secondary); padding: 2rem 1rem; height: 100vh; display: flex; flex-direction: column; border-right: 1px solid var(--bg-tertiary); }
+        .sidebar-header { display: flex; align-items: center; gap: 1rem; font-size: 1.5rem; font-weight: 700; margin-bottom: 3rem; }
+        .sidebar-header i { color: var(--accent-green); }
+        .sidebar-nav a { display: flex; align-items: center; gap: 1rem; color: var(--text-secondary); text-decoration: none; padding: 1rem; border-radius: 8px; margin-bottom: 0.5rem; transition: background-color 0.3s, color 0.3s; cursor: pointer; }
+        .sidebar-nav a:hover, .sidebar-nav a.active { background-color: var(--accent-blue); color: var(--text-primary); }
+        .sidebar-nav a i { width: 20px; }
+        
+        .main-content { flex-grow: 1; padding: 2rem; overflow-y: auto; height: 100vh; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+        header h1 { font-size: 2rem; }
+        
+        /* --- View Switching --- */
+        .view { display: none; animation: fadeIn 0.5s; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        /* --- Shared Section Styles --- */
+        .section-container { background-color: var(--bg-secondary); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--bg-tertiary); }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        
+        /* --- Dashboard View --- */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .kpi-card { background-color: var(--bg-secondary); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--bg-tertiary); }
+        .kpi-card-title { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 0.5rem; }
+        .kpi-card-value { font-size: 2.5rem; font-weight: 700; }
+        .bin-list-table { width: 100%; border-collapse: collapse; }
+        .bin-list-table th, .bin-list-table td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--bg-tertiary); }
+        .bin-list-table th { color: var(--text-secondary); font-weight: 500; font-size: 0.8rem; text-transform: uppercase; }
+        .status-badge { padding: 0.25rem 0.75rem; border-radius: 12px; font-weight: 600; font-size: 0.8rem; }
+        .status-normal { background-color: #1f4e46; color: var(--accent-green); }
+        .status-warning { background-color: #5b472a; color: var(--accent-yellow); }
+        .status-critical { background-color: #582a33; color: var(--accent-red); }
+        .fill-bar-container { width: 100%; height: 10px; background-color: var(--bg-tertiary); border-radius: 5px; overflow: hidden; }
+        .fill-bar { height: 100%; border-radius: 5px; transition: width 0.5s ease; }
+        .fill-green { background-color: var(--accent-green); } .fill-yellow { background-color: var(--accent-yellow); } .fill-red { background-color: var(--accent-red); }
+        .details-btn { background: var(--bg-tertiary); color: var(--text-primary); border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; transition: background-color 0.3s; }
+        .details-btn:hover { background-color: var(--accent-blue); }
+        
+        /* --- Alerts View --- */
+        #alerts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+        .alert-card { background-color: var(--bg-tertiary); padding: 1.5rem; border-radius: 8px; border-left: 5px solid var(--accent-red); }
+        .alert-card h3 { margin-bottom: 0.5rem; font-size: 1.2rem; }
+        .alert-card p { color: var(--text-secondary); }
+        .alert-fill-level { font-size: 2rem; font-weight: 700; color: var(--accent-red); margin-top: 1rem; }
+
+        /* --- Reports View --- */
+        .report-button { background-color: var(--accent-green); color: #1a1c23; border: none; padding: 0.8rem 1.5rem; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; display: flex; align-items: center; gap: 0.75rem; transition: background-color 0.3s; }
+        .report-button:hover { background-color: #45d1b6; }
+        
+        /* --- MODAL STYLES --- */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0, 0, 0, 0.7); justify-content: center; align-items: center; }
+        .modal.show { display: flex; }
+        .modal-content { background-color: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--bg-tertiary); width: 90%; display: flex; flex-direction: column; animation: slide-down 0.4s ease-out; }
+        @keyframes slide-down { from { transform: translateY(-30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--bg-tertiary); }
+        .modal-header h2 { margin: 0; }
+        .close-btn { color: var(--text-secondary); font-size: 1.8rem; font-weight: bold; cursor: pointer; }
+        .close-btn:hover { color: var(--text-primary); }
+        #bin-modal .modal-content { max-width: 800px; }
+        #bin-modal .modal-body { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 1.5rem; }
+        .modal-map { grid-column: 2 / 3; grid-row: 1 / 3; min-height: 300px; border-radius: 8px; overflow: hidden; }
+        .modal-map iframe { width: 100%; height: 100%; border: none; filter: invert(1) hue-rotate(180deg); }
+        .detail-item { background-color: var(--bg-tertiary); padding: 1rem; border-radius: 8px; }
+        .detail-item-label { color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.25rem; }
+        .detail-item-value { font-size: 1.2rem; font-weight: 600; }
+        .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--bg-tertiary); display: flex; justify-content: flex-end; }
+        .remove-btn { background-color: var(--accent-red); color: white; border: none; padding: 0.6rem 1.2rem; font-weight: 600; border-radius: 6px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar">
+        <div class="sidebar-header"><i class="fa-solid fa-recycle"></i><span>SmartWaste</span></div>
+        <div class="sidebar-nav">
+            <a data-view="dashboard" class="nav-link active"><i class="fa-solid fa-tachometer-alt"></i> Dashboard</a>
+            <a data-view="analytics" class="nav-link"><i class="fa-solid fa-chart-bar"></i> Analytics</a>
+            <a data-view="alerts" class="nav-link"><i class="fa-solid fa-bell"></i> Alerts</a>
+            <a data-view="reports" class="nav-link"><i class="fa-solid fa-file-alt"></i> Reports</a>
+            <a data-view="settings" class="nav-link"><i class="fa-solid fa-cog"></i> Settings</a>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div id="dashboard-view" class="view active">
+            <header><h1>Dashboard</h1></header>
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="kpi-card-title">Total Bins</div><div id="kpi-total-bins" class="kpi-card-value">0</div></div>
+                <div class="kpi-card"><div class="kpi-card-title">Bins > 75% Full</div><div id="kpi-full-bins" class="kpi-card-value" style="color: var(--accent-red);">0</div></div>
+                <div class="kpi-card"><div class="kpi-card-title">Bins 50-75% Full</div><div id="kpi-warning-bins" class="kpi-card-value" style="color: var(--accent-yellow);">0</div></div>
+            </div>
+            <section class="section-container">
+                <div class="section-header"><h2>All Bins (Sorted by Fill Level)</h2></div>
+                <table class="bin-list-table">
+                    <thead><tr><th>Bin ID</th><th>Address</th><th>Status</th><th>Fill Level</th><th>Actions</th></tr></thead>
+                    <tbody id="bin-list-body"></tbody>
+                </table>
+            </section>
+        </div>
+
+        <div id="analytics-view" class="view">
+            <header><h1>Analytics</h1></header>
+            <section class="section-container">
+                <div class="section-header"><h2>Bin Fill Level Distribution</h2></div>
+                <canvas id="fillLevelChart"></canvas>
+            </section>
+        </div>
+
+        <div id="alerts-view" class="view">
+            <header><h1>Alerts</h1></header>
+            <section class="section-container">
+                 <div class="section-header"><h2>Bins Over 75% Full</h2></div>
+                 <div id="alerts-grid"></div>
+            </section>
+        </div>
+
+        <div id="reports-view" class="view">
+            <header><h1>Reports</h1></header>
+            <section class="section-container">
+                <div class="section-header"><h2>Download Data</h2></div>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Download a CSV report of the current status of all bins. This file can be opened with Excel. The report reflects the latest data snapshot.</p>
+                <button id="download-csv-btn" class="report-button"><i class="fa-solid fa-download"></i>Download Current Report (CSV)</button>
+            </section>
+        </div>
+        
+        <div id="settings-view" class="view">
+            <header><h1>Settings</h1></header>
+             <section class="section-container">
+                <p>Settings page is under construction.</p>
+            </section>
+        </div>
+
+        <div id="bin-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-bin-id">Bin Details</h2><span class="close-btn" id="close-details-modal-btn">×</span>
+                </div>
+                <div class="modal-body">
+                    <div class="detail-item"><div class="detail-item-label">Address</div><div id="modal-bin-address" class="detail-item-value"></div></div>
+                    <div class="detail-item"><div class="detail-item-label">Status</div><div id="modal-bin-status" class="detail-item-value"></div></div>
+                    <div class="detail-item"><div class="detail-item-label">Fill Level</div><div id="modal-bin-fill" class="detail-item-value"></div></div>
+                    <div class="detail-item"><div class="detail-item-label">Temperature</div><div id="modal-bin-temp" class="detail-item-value"></div></div>
+                    <div class="detail-item"><div class="detail-item-label">Battery</div><div id="modal-bin-battery" class="detail-item-value"></div></div>
+                    <div class="modal-map" id="modal-map-container"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="modal-remove-btn" class="remove-btn">Remove Bin</button>
+                </div>
+            </div>
+        </div>
+        </main>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeUTafZWpu4ZKl37AVHEX4GR3rQv4sqyw",
+            authDomain: "dashboard-61ee7.firebaseapp.com",
+            databaseURL: "https://dashboard-61ee7-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "dashboard-61ee7",
+            storageBucket: "dashboard-61ee7.appspot.com",
+            messagingSenderId: "261964668241",
+            appId: "1:261964668241:web:69d060b2cff9da47c4c770",
+            measurementId: "G-F16QHJEQNW"
+        };
+        
+        // --- Global Variables ---
+        let currentBinsData = [];
+        let fillLevelChart = null;
+
+        // --- DOM REFERENCES ---
+        const binListBody = document.getElementById('bin-list-body');
+        const kpiTotalBins = document.getElementById('kpi-total-bins');
+        const kpiFullBins = document.getElementById('kpi-full-bins');
+        const kpiWarningBins = document.getElementById('kpi-warning-bins');
+        const alertsGrid = document.getElementById('alerts-grid');
+        const navLinks = document.querySelectorAll('.nav-link');
+        const views = document.querySelectorAll('.view');
+        const downloadCsvBtn = document.getElementById('download-csv-btn');
+        const detailsModal = document.getElementById('bin-modal');
+        const closeDetailsModalBtn = document.getElementById('close-details-modal-btn');
+
+        // --- FIREBASE INITIALIZATION ---
+        try {
+            const app = initializeApp(firebaseConfig);
+            const database = getDatabase(app);
+            // --- CORRECTION 1: Changed database path from 'trash_bins' to 'WasteBin' ---
+            const wasteBinRef = ref(database, 'WasteBin');
+
+            onValue(wasteBinRef, (snapshot) => {
+                const bins = snapshot.val();
+                if (bins) {
+                    // --- CORRECTION 2: Map database fields to the fields the dashboard expects ---
+                    const binsArray = Object.entries(bins).map(([id, data]) => ({
+                        id: id,                     // e.g., "Vijayawada"
+                        address: id,                // Use the ID as the address
+                        fillLevel: data.level_percent, // Map 'level_percent' to 'fillLevel'
+                        temperature: data.temperature,
+                        latitude: data.latitude,
+                        longitude: data.longitude,
+                        // Note: 'battery' is not in your DB, so it will correctly show 'N/A'
+                    }));
+                    
+                    // Sorting is now based on the corrected 'fillLevel'
+                    binsArray.sort((a, b) => b.fillLevel - a.fillLevel);
+                    
+                    currentBinsData = binsArray; // Store sorted data for other functions
+                    
+                    // Update all views with the new, sorted data
+                    updateDashboardView(binsArray);
+                    updateAnalyticsView(binsArray);
+                    updateAlertsView(binsArray);
+                } else {
+                    currentBinsData = [];
+                    binListBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No bin data found.</td></tr>';
+                    updateDashboardView([]);
+                    updateAnalyticsView([]);
+                    updateAlertsView([]);
+                }
+            });
+        } catch (error) {
+            console.error("Firebase connection failed:", error);
+            binListBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Error connecting to the database.</td></tr>';
+        }
+
+        // --- VIEW UPDATE FUNCTIONS ---
+
+        function updateDashboardView(bins) {
+            binListBody.innerHTML = '';
+            let fullBins = 0, warningBins = 0;
+
+            if (bins.length === 0) {
+                binListBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No bin data to display.</td></tr>';
+            } else {
+                bins.forEach(bin => {
+                    binListBody.appendChild(createBinTableRow(bin));
+                    if (bin.fillLevel > 75) fullBins++;
+                    else if (bin.fillLevel >= 50) warningBins++;
+                });
+            }
+            
+            kpiTotalBins.textContent = bins.length;
+            kpiFullBins.textContent = fullBins;
+            kpiWarningBins.textContent = warningBins;
+        }
+
+        function updateAnalyticsView(bins) {
+            const ctx = document.getElementById('fillLevelChart').getContext('2d');
+            const categories = {
+                'Normal (0-49%)': bins.filter(b => b.fillLevel < 50).length,
+                'Warning (50-75%)': bins.filter(b => b.fillLevel >= 50 && b.fillLevel <= 75).length,
+                'Full (>75%)': bins.filter(b => b.fillLevel > 75).length,
+            };
+
+            if (fillLevelChart) { // Update existing chart
+                fillLevelChart.data.labels = Object.keys(categories);
+                fillLevelChart.data.datasets[0].data = Object.values(categories);
+                fillLevelChart.update();
+            } else { // Create new chart
+                fillLevelChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(categories),
+                        datasets: [{
+                            label: '# of Bins',
+                            data: Object.values(categories),
+                            backgroundColor: ['rgba(80, 227, 194, 0.6)', 'rgba(245, 166, 35, 0.6)', 'rgba(208, 2, 27, 0.6)'],
+                            borderColor: ['#50e3c2', '#f5a623', '#d0021b'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: { y: { beginAtZero: true, ticks: { color: 'white' } }, x: { ticks: { color: 'white' } } },
+                        plugins: { legend: { display: false } }
+                    }
+                });
+            }
+        }
+        
+        function updateAlertsView(bins) {
+            alertsGrid.innerHTML = '';
+            const alertBins = bins.filter(bin => bin.fillLevel > 75);
+
+            if (alertBins.length === 0) {
+                alertsGrid.innerHTML = '<p>No high-level alerts to display.</p>';
+                return;
+            }
+
+            alertBins.forEach(bin => {
+                const card = document.createElement('div');
+                card.className = 'alert-card';
+                card.innerHTML = `
+                    <h3>${bin.id}</h3>
+                    <p>${bin.address || 'N/A'}</p>
+                    <div class="alert-fill-level">${bin.fillLevel}% Full</div>
+                `;
+                alertsGrid.appendChild(card);
+            });
+        }
+
+        // --- HELPER & EVENT LISTENER FUNCTIONS ---
+        
+        function createBinTableRow(bin) {
+            const tr = document.createElement('tr');
+            let statusText, statusClass, fillClass;
+            if (bin.fillLevel > 75) {
+                [statusText, statusClass, fillClass] = ['Critical', 'status-critical', 'fill-red'];
+            } else if (bin.fillLevel >= 50) {
+                [statusText, statusClass, fillClass] = ['Warning', 'status-warning', 'fill-yellow'];
+            } else {
+                [statusText, statusClass, fillClass] = ['Normal', 'status-normal', 'fill-green'];
+            }
+            tr.innerHTML = `
+                <td><b>${bin.id}</b></td><td>${bin.address || 'N/A'}</td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                <td><div class="fill-bar-container"><div class="fill-bar ${fillClass}" style="width: ${bin.fillLevel}%;"></div></div></td>
+                <td><button class="details-btn" data-bin-id="${bin.id}">Details</button></td>
+            `;
+            return tr;
+        }
+
+        function switchView(viewName) {
+            views.forEach(view => view.classList.remove('active'));
+            document.getElementById(`${viewName}-view`).classList.add('active');
+            navLinks.forEach(link => {
+                link.classList.toggle('active', link.dataset.view === viewName);
+            });
+        }
+        
+        function downloadCSV() {
+            if (currentBinsData.length === 0) {
+                alert("No data available to download.");
+                return;
+            }
+
+            const headers = "Bin ID,Address,Fill Level (%),Status,Latitude,Longitude,Temperature,Battery";
+            const csvRows = [headers];
+
+            currentBinsData.forEach(bin => {
+                let status;
+                if (bin.fillLevel > 75) status = 'Critical';
+                else if (bin.fillLevel >= 50) status = 'Warning';
+                else status = 'Normal';
+                
+                const address = `"${bin.address || 'N/A'}"`;
+                
+                const row = [
+                    bin.id, address, bin.fillLevel, status,
+                    bin.latitude || 'N/A', bin.longitude || 'N/A',
+                    bin.temperature || 'N/A', bin.battery || 'N/A'
+                ].join(',');
+                csvRows.push(row);
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+
+            const date = new Date().toISOString().slice(0, 10);
+            a.href = url;
+            a.download = `smart_bin_report_${date}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // --- MODAL LOGIC ---
+        function openDetailsModal(binId) {
+            const binData = currentBinsData.find(b => b.id === binId);
+            if (!binData) return;
+
+            let statusText;
+            if (binData.fillLevel > 75) statusText = 'Critical';
+            else if (binData.fillLevel >= 50) statusText = 'Warning';
+            else statusText = 'Normal';
+            
+            document.getElementById('modal-bin-id').textContent = binData.id;
+            document.getElementById('modal-bin-address').textContent = binData.address || 'N/A';
+            document.getElementById('modal-bin-status').textContent = statusText;
+            document.getElementById('modal-bin-fill').textContent = `${binData.fillLevel}%`;
+            document.getElementById('modal-bin-temp').textContent = `${binData.temperature !== undefined ? binData.temperature + '°C' : 'N/A'}`;
+            document.getElementById('modal-bin-battery').textContent = `${binData.battery !== undefined ? binData.battery + '%' : 'N/A'}`;
+
+            const mapContainer = document.getElementById('modal-map-container');
+            if (binData.latitude && binData.longitude) {
+                // --- CORRECTION 3: Fixed the Google Maps embed URL ---
+                const mapUrl = `https://maps.google.com/maps?q=${binData.latitude},${binData.longitude}&z=16&output=embed`;
+                mapContainer.innerHTML = `<iframe src="${mapUrl}" loading="lazy"></iframe>`;
+            } else {
+                mapContainer.innerHTML = `<p>Location data not available.</p>`;
+            }
+            
+            document.getElementById('modal-remove-btn').onclick = () => {
+                if (confirm(`Are you sure you want to remove ${binId}? This will delete it from the database.`)) {
+                    removeBin(binId);
+                    closeDetailsModal();
+                }
+            };
+            detailsModal.classList.add('show');
+        }
+
+        function closeDetailsModal() { detailsModal.classList.remove('show'); }
+
+        function removeBin(binId) {
+            try {
+                const db = getDatabase();
+                // Use the correct path for removing the bin
+                remove(ref(db, `WasteBin/${binId}`));
+            } catch (error) {
+                console.error("Error removing bin:", error);
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        navLinks.forEach(link => link.addEventListener('click', (e) => switchView(e.currentTarget.dataset.view)));
+        downloadCsvBtn.addEventListener('click', downloadCSV);
+        closeDetailsModalBtn.addEventListener('click', closeDetailsModal);
+        window.addEventListener('click', (event) => { if (event.target == detailsModal) closeDetailsModal(); });
+        binListBody.addEventListener('click', (event) => {
+            if (event.target.classList.contains('details-btn')) {
+                openDetailsModal(event.target.dataset.binId);
+            }
+        });
+
+    </script>
+</body>
+</html>
